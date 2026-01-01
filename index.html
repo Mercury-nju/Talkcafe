@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saylo - 沉浸式口语训练</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <!-- 背景视频层 -->
+        <div class="video-layer">
+            <video id="webcam" autoplay playsinline muted mirrored="true"></video>
+            <div class="video-gradient-overlay"></div>
+        </div>
+
+        <!-- 顶部状态栏 -->
+        <header class="top-bar">
+            <div class="brand">
+                <span class="brand-name">Saylo</span>
+            </div>
+            <div class="connection-status">
+                <span class="status-dot"></span>
+                <span id="status-text">Ready</span>
+            </div>
+        </header>
+
+        <!-- 顶部固定提词区 (Karaoke Zone) -->
+        <div id="prompter-zone" class="prompter-container">
+            <!-- AI 当前正在说的话 -->
+            <div id="active-ai-text" class="active-line ai-line">Press Start to Chat</div>
+
+            <!-- 用户需要跟读的话 (灰色 -> 白色) -->
+            <div id="active-user-text" class="active-line user-line-shadow">
+                <!-- 动态生成的 span words 会在这里 -->
+            </div>
+        </div>
+
+        <!-- 历史对话流 (作为背景/辅助) -->
+        <main class="main-stage-history">
+            <div id="chat-stream" class="chat-stream-container">
+                <!-- 完成的对话会被推入这里 -->
+            </div>
+        </main>
+
+        <!-- 侧边实时反馈 (用户说话上屏) -->
+        <div id="danmaku-container"></div>
+
+        <!-- 底部 Dock 控制栏 -->
+        <div class="bottom-dock-container active">
+            <!-- 声波可视化 -->
+            <div id="visualizer" class="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <!-- 场景选择器 (Pills) - 移除 emoji -->
+            <div class="scene-pills-wrapper" id="scene-selector-wrapper">
+                <button class="scene-pill active" data-value="daily">Daily Chat</button>
+                <button class="scene-pill" data-value="job_interview">Interview</button>
+                <button class="scene-pill" data-value="ordering_food">Ordering</button>
+                <button class="scene-pill" data-value="airport_checkin">Travel</button>
+                <button class="scene-pill" data-value="business_meeting">Business</button>
+                <button class="scene-pill" data-value="custom">Custom</button>
+            </div>
+
+            <!-- 主控制栏 -->
+            <div class="control-dock">
+                <button id="camera-btn" class="dock-btn icon-btn active" title="摄像头">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 7l-7 5 7 5V7z"></path>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                </button>
+
+                <button id="mic-btn" class="dock-btn icon-btn active" title="麦克风">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </button>
+
+                <button id="start-btn" class="dock-btn primary-action">
+                    Start
+                </button>
+            </div>
+        </div>
+
+        <!-- 启动遮罩 (Landing) -->
+        <div id="landing-overlay" class="landing-layer">
+            <div class="landing-bg">
+                <div class="bg-gradient-1"></div>
+                <div class="bg-gradient-2"></div>
+                <div class="bg-grid"></div>
+            </div>
+            
+            <!-- 顶部导航栏 -->
+            <nav class="landing-nav">
+                <div class="nav-brand">
+                    <svg class="brand-logo" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                        <path d="M10 16C10 12.6863 12.6863 10 16 10C19.3137 10 22 12.6863 22 16C22 19.3137 19.3137 22 16 22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="16" cy="16" r="3" fill="white"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                                <stop stop-color="#6366f1"/>
+                                <stop offset="1" stop-color="#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span>Saylo</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How it Works</a>
+                    <a href="#pricing">Pricing</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="#" class="nav-link-btn">Log in</a>
+                    <button class="nav-cta" id="nav-start-btn">Start Free</button>
+                </div>
+            </nav>
+            
+            <!-- Hero 区域 -->
+            <div class="landing-hero">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <span class="badge-dot"></span>
+                        <span>AI-Powered Learning</span>
+                    </div>
+                    <h1 class="hero-title">Speak English<br/>Like a Native</h1>
+                    <p class="hero-subtitle">Practice real conversations with AI. Get instant pronunciation feedback, guided responses, and build confidence in speaking English naturally.</p>
+                    <div class="hero-actions">
+                        <button id="enter-btn" class="hero-btn primary">
+                            <span>Start Speaking Now</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </button>
+                        <button class="hero-btn secondary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/>
+                            </svg>
+                            <span>Watch Demo</span>
+                        </button>
+                    </div>
+                    <div class="hero-trust">
+                        <div class="trust-avatars">
+                            <div class="avatar">J</div>
+                            <div class="avatar">M</div>
+                            <div class="avatar">K</div>
+                            <div class="avatar">S</div>
+                            <div class="avatar more">+</div>
+                        </div>
+                        <div class="trust-text">
+                            <div class="trust-stars">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            </div>
+                            <span>Loved by 10,000+ learners</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="visual-card">
+                        <div class="card-glow"></div>
+                        <div class="card-inner">
+                            <div class="card-header">
+                                <div class="card-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                                <div class="card-title">Saylo</div>
+                                <div class="card-status">
+                                    <span class="status-dot"></span>
+                                    Connected
+                                </div>
+                            </div>
+                            <div class="card-preview">
+                                <div class="preview-video-bg"></div>
+                                <div class="preview-overlay"></div>
+                                <div class="preview-content">
+                                    <div class="preview-ai-text">What do you like to do in your free time?</div>
+                                    <div class="preview-user-text">I enjoy reading books and watching movies.</div>
+                                </div>
+                                <div class="preview-controls">
+                                    <div class="preview-wave">
+                                        <span></span><span></span><span></span><span></span><span></span>
+                                    </div>
+                                    <span>Your Turn</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="landing-note">No credit card required. Works best in Chrome with microphone access.</p>
+        </div>
+    </div>
+
+    <script src="doubao-protocol.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
